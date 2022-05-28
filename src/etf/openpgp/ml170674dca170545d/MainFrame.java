@@ -1,6 +1,8 @@
 package etf.openpgp.ml170674dca170545d;
 
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -32,9 +34,14 @@ public class MainFrame extends JFrame{
 	private void setupMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu("File");
-        JMenuItem generatedNewKeysItem = new JMenuItem("Generate new key pair");
-
-        menu.add(generatedNewKeysItem);
+        JMenuItem generateNewKeyPair = new JMenuItem("Generate new key pair");
+        generateNewKeyPair.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				new GenerateNewKeyPairFrame();
+			}
+		});
+        menu.add(generateNewKeyPair);
         menuBar.add(menu);
         frame.add(menuBar, BorderLayout.NORTH);
 	}
