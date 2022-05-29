@@ -38,7 +38,7 @@ public class MainFrame extends JFrame{
         generateNewKeyPair.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				new GenerateNewKeyPairFrame();
+				new NewKeyPairFrame();
 			}
 		});
         menu.add(generateNewKeyPair);
