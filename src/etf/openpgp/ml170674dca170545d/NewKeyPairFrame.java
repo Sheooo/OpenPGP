@@ -141,9 +141,9 @@ public class NewKeyPairFrame extends JFrame implements ActionListener{
 			String name = nameField.getText();
 			String email = mailField.getText();
 			int rsaSize = (int)rsaSizeBox.getSelectedItem();
-			String passPhrase = passPhraseField.getText();
+			char[] passPhrase = passPhraseField.getText().toCharArray();
 			
-			new NewKeyPair(name, 
+			NewKeyPair.generateNewKeyPair(name, 
 						   email, 
 						   rsaSize, 
 						   passPhrase,

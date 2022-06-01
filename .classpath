@@ -7,7 +7,7 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/bcpg-jdk15on-1.67.jar"/>
+	<classpathentry kind="lib" path="lib/bcpg-jdk15on-1.67.jar" sourcepath="lib/bcpg-jdk15on-1.67.jar"/>
 	<classpathentry kind="lib" path="lib/bcprov-jdk15to18-1.67.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
