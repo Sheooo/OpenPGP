@@ -7,12 +7,14 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.Date;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 import org.bouncycastle.bcpg.sig.KeyFlags;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
@@ -38,15 +40,14 @@ enum KeyType {
 }
 
 class NewKeyPair {
-	static public Boolean generateNewKeyPair(String name,
+	static public Object[] generateNewKeyPair(String name,
 					  String email,
 					  int rsaSize,
 					  char[] passPhrase,
-					  PGPPublicKeyRingCollection publicKeyRingCollection,
-					  PGPSecretKeyRingCollection secretKeyRingCollection,
-					  File publicKeyRingFile,
-					  File secretKeyRingFile) {
+					  PGPPublicKeyRingCollection publicKeyRingColletion,
+					  PGPSecretKeyRingCollection secretKeyRingCollection) {
 		try {
+			Security.addProvider(new BouncyCastleProvider());
 			KeyPairGenerator keyPairGeneratorRsa;
 			keyPairGeneratorRsa = KeyPairGenerator.getInstance("RSA");
 			keyPairGeneratorRsa.initialize(rsaSize);
@@ -63,18 +64,18 @@ class NewKeyPair {
 			PGPSecretKeyRing privateKeyRing = keyRingGenerator.generateSecretKeyRing();
 			PGPPublicKeyRing publicKeyRing = keyRingGenerator.generatePublicKeyRing();
 			
+			publicKeyRingColletion = PGPPublicKeyRingCollection.addPublicKeyRing(publicKeyRingColletion, publicKeyRing);
 			secretKeyRingCollection = PGPSecretKeyRingCollection.addSecretKeyRing(secretKeyRingCollection, privateKeyRing);
-			publicKeyRingCollection = PGPPublicKeyRingCollection.addPublicKeyRing(publicKeyRingCollection, publicKeyRing);
 			
-			writeKeysToFiles(publicKeyRingFile, 
-							 secretKeyRingFile, 
-							 publicKeyRingCollection, 
-							 secretKeyRingCollection);
+			Object[] ret = new Object[] {(Object)publicKeyRingColletion,
+										 (Object)secretKeyRingCollection};
+			writeKeyRingsToFile("src/OnLoadFiles/secret/secretKeyRing.asc", 
+							   (Object)secretKeyRingCollection);
 			
-			return true;
+			return ret;
 		} catch (NoSuchAlgorithmException | PGPException e) {
 			e.printStackTrace();
-			return false;
+			return null;
 		}
 	}
 	
@@ -143,18 +144,20 @@ class NewKeyPair {
 		return signatureSubpacketGenerator;
 	}
 	
-	private static void writeKeysToFiles(File publicKeyRingFile, 
-										 File secretKeyRingFile,
-										  PGPPublicKeyRingCollection publicKeyRingCollection,
-										  PGPSecretKeyRingCollection secretKeyRingCollection) {
+	@SuppressWarnings("unused")
+	private static void writeKeyRingsToFile(String filePath, 
+										 	Object keyRingCollection) {
 		try {
-			ArmoredOutputStream aos1 = new ArmoredOutputStream(new FileOutputStream(secretKeyRingFile));
-			secretKeyRingCollection.encode(aos1);
-	        aos1.close();
-	        
-	        ArmoredOutputStream aos2 = new ArmoredOutputStream(new FileOutputStream(publicKeyRingFile));
-	        publicKeyRingCollection.encode(aos2);
-	        aos2.close();
+			ArmoredOutputStream aos1 = new ArmoredOutputStream(new FileOutputStream(filePath));
+			if (keyRingCollection instanceof PGPPublicKeyRingCollection) {
+				PGPPublicKeyRingCollection publicKeyRingColletion = (PGPPublicKeyRingCollection) keyRingCollection;
+				publicKeyRingColletion.encode(aos1);
+		        aos1.close();
+			} else {
+				PGPSecretKeyRingCollection secretKeyRingColletion = (PGPSecretKeyRingCollection) keyRingCollection;
+				secretKeyRingColletion.encode(aos1);
+		        aos1.close();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

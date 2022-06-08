@@ -24,9 +24,13 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableColumnModel;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -43,19 +47,19 @@ public class NewKeyPairFrame extends JFrame implements ActionListener{
 	private JTextField passPhraseField; 
 	private JButton generateButton;
 	private JLabel errorMessage;
-
 	private PGPPublicKeyRingCollection publicKeyRingCollection;
 	private PGPSecretKeyRingCollection secretKeyRingCollection;
-	
-	private static File publicKeyRingFile;
-    private static File secretKeyRingFile;
-    private static String path;
+
+    private MainFrame mainFrame;
     
-	public NewKeyPairFrame() {
+	public NewKeyPairFrame(MainFrame mainFrame,
+						   PGPPublicKeyRingCollection publicKeyRingCollection,
+						   PGPSecretKeyRingCollection secretKeyRingCollection) {
 		super("PGP");
-		initPath();
-		initPublicKeyRing();
-		initSecretKeyRing();
+		this.mainFrame = mainFrame;
+		
+		initPublicKeyRing(publicKeyRingCollection);
+		initSecretKeyRing(secretKeyRingCollection);
 		initFrame();
 	}
 
@@ -92,43 +96,16 @@ public class NewKeyPairFrame extends JFrame implements ActionListener{
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 	}
+	
 
-	private void initPublicKeyRing() {
-		try {
-			publicKeyRingFile = new File(path + "/src/publicKeyRing.asc");
-			publicKeyRingCollection = new PGPPublicKeyRingCollection(new ArmoredInputStream(new FileInputStream(publicKeyRingFile)), new BcKeyFingerprintCalculator());
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (PGPException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		Security.addProvider(new BouncyCastleProvider());
+
+	private void initPublicKeyRing(PGPPublicKeyRingCollection publicKeyRingCollection) {	 
+			this.publicKeyRingCollection = publicKeyRingCollection;
 	}
 	
-	private void initSecretKeyRing() {
-		try {
-			secretKeyRingFile = new File(path + "/src/secretKeyRing.asc");
-			secretKeyRingCollection = new PGPSecretKeyRingCollection(new ArmoredInputStream(new FileInputStream(secretKeyRingFile)), new BcKeyFingerprintCalculator());
-		} catch (FileNotFoundException e) {
-			
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (PGPException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
-	}
+	private void initSecretKeyRing(PGPSecretKeyRingCollection secretKeyRingCollection) {
+			this.secretKeyRingCollection = secretKeyRingCollection;
 	
-	private void initPath() {
-		Path root = Paths.get(".").normalize().toAbsolutePath();
-		path = root.toString();
 	}
 	
 	@Override
@@ -143,14 +120,15 @@ public class NewKeyPairFrame extends JFrame implements ActionListener{
 			int rsaSize = (int)rsaSizeBox.getSelectedItem();
 			char[] passPhrase = passPhraseField.getText().toCharArray();
 			
-			NewKeyPair.generateNewKeyPair(name, 
+			Object[] keyRingCollectionsNewKeyPair = NewKeyPair.generateNewKeyPair(name, 
 						   email, 
 						   rsaSize, 
 						   passPhrase,
 						   publicKeyRingCollection,
-						   secretKeyRingCollection,
-						   publicKeyRingFile,
-						   secretKeyRingFile);
+						   secretKeyRingCollection);
+			mainFrame.setPublicKeyRingColletion((PGPPublicKeyRingCollection)keyRingCollectionsNewKeyPair[0]);
+			mainFrame.setSecretKeyRingColletion((PGPSecretKeyRingCollection)keyRingCollectionsNewKeyPair[1]);
+			mainFrame.populateKeysTableIfNeeded();
 		} else {
 			errorMessage.setVisible(true);
 			
