@@ -52,16 +52,12 @@ public class NewKeyPairFrame extends JFrame implements ActionListener{
 
     private MainFrame mainFrame;
     
-	public NewKeyPairFrame(MainFrame mainFrame,
-						   PGPPublicKeyRingCollection publicKeyRingCollection,
-						   PGPSecretKeyRingCollection secretKeyRingCollection) {
+	public NewKeyPairFrame(MainFrame mainFrame) {
 		super("PGP");
 		this.mainFrame = mainFrame;
-		
-		initPublicKeyRing(publicKeyRingCollection);
-		initSecretKeyRing(secretKeyRingCollection);
 		initFrame();
 	}
+
 
 	private void initFrame() {
 		frame = this;
@@ -97,17 +93,6 @@ public class NewKeyPairFrame extends JFrame implements ActionListener{
 		frame.setVisible(true);
 	}
 	
-
-
-	private void initPublicKeyRing(PGPPublicKeyRingCollection publicKeyRingCollection) {	 
-			this.publicKeyRingCollection = publicKeyRingCollection;
-	}
-	
-	private void initSecretKeyRing(PGPSecretKeyRingCollection secretKeyRingCollection) {
-			this.secretKeyRingCollection = secretKeyRingCollection;
-	
-	}
-	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if(!nameField.getText().isEmpty() &&
@@ -129,6 +114,8 @@ public class NewKeyPairFrame extends JFrame implements ActionListener{
 			mainFrame.setPublicKeyRingColletion((PGPPublicKeyRingCollection)keyRingCollectionsNewKeyPair[0]);
 			mainFrame.setSecretKeyRingColletion((PGPSecretKeyRingCollection)keyRingCollectionsNewKeyPair[1]);
 			mainFrame.populateKeysTableIfNeeded();
+			
+			dispose();
 		} else {
 			errorMessage.setVisible(true);
 			

@@ -4,45 +4,35 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedInputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
-
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.openpgp.PGPException;
-import org.bouncycastle.openpgp.PGPKeyRing;
-import org.bouncycastle.openpgp.PGPObjectFactory;
-import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
-import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
-import org.bouncycastle.openpgp.PGPUtil;
-import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
-import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
+
 
 
 public class MainFrame extends JFrame{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private JFrame frame;
 	private JTable keysTable;
 	private DefaultTableModel tableModel;
@@ -52,7 +42,6 @@ public class MainFrame extends JFrame{
 												"Email",
 												"Key ID",
 												"Type"};
-    private JPanel p;
     
 	public MainFrame() {
 		super("OpenPGP");
@@ -85,17 +74,27 @@ public class MainFrame extends JFrame{
 	private void setupMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu("File");
+        
         JMenuItem generateNewKeyPair = new JMenuItem("Generate new key pair");
         MainFrame mainFrame = this;
         generateNewKeyPair.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				new NewKeyPairFrame(mainFrame,
-									publicKeyRingCollection,
-									secretKeyRingCollection);
+				 new NewKeyPairFrame(mainFrame);
 			}
 		});
+        
+        JMenuItem importKeyRing = new JMenuItem("Import key");
+        importKeyRing.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ImportKeyFrame keyFrame = new ImportKeyFrame(mainFrame);
+			}
+		});
+        
+        
         menu.add(generateNewKeyPair);
+        menu.add(importKeyRing);
         menuBar.add(menu);
         frame.add(menuBar, BorderLayout.NORTH);
 	}
@@ -127,7 +126,9 @@ public class MainFrame extends JFrame{
 		
 		keysTable = new JTable(tableModel);
 		keysTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
+			private static final long serialVersionUID = 1L;
+
+			@Override
             public Component getTableCellRendererComponent(JTable table,
                     Object value, boolean isSelected, boolean hasFocus, int row, int col) {
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
@@ -135,7 +136,10 @@ public class MainFrame extends JFrame{
                 if ("Secret".equals(status)) {
                     setBackground(Color.BLACK);
                     setForeground(Color.WHITE);
-                } 
+                } else {
+                    setBackground(Color.WHITE);
+                    setForeground(Color.BLACK);
+                }
                 return this;
             }   
     	});
@@ -156,6 +160,14 @@ public class MainFrame extends JFrame{
 
 	public void setSecretKeyRingColletion(PGPSecretKeyRingCollection secretKeyRingCollection) {
 		this.secretKeyRingCollection = secretKeyRingCollection;
+	}
+	
+	public PGPPublicKeyRingCollection getPublicKeyRingColletion() {
+		return this.publicKeyRingCollection;
+	}
+
+	public PGPSecretKeyRingCollection getSecretKeyRingColletion() {
+		return this.secretKeyRingCollection;
 	}
 	
 	 public void populateKeysTableIfNeeded() {
@@ -193,18 +205,17 @@ public class MainFrame extends JFrame{
 	    	}
 		 }
 		 if(publicKeyRingCollection != null) {
-			Iterator<PGPPublicKeyRing> publicKeyRingIter = this.publicKeyRingCollection.iterator();
-	    	PGPPublicKeyRing publicKeyRing;
+			
 	    	String keyID;
-	    	while(publicKeyRingIter.hasNext()) {
+	    	for(PGPPublicKeyRing publicKeyRing : publicKeyRingCollection) {
 	    		boolean shouldAddToTable = true;
-	    		publicKeyRing = publicKeyRingIter.next();
+	    		
 	    		keyID = Long.toHexString(publicKeyRing.getPublicKey().getKeyID()).toUpperCase();
 				StringBuilder stringBuilder = new StringBuilder(keyID);
 				stringBuilder.insert(4, " ").insert(9, " ").insert(14, " ");
 				String formatedKeyId = stringBuilder.toString();
 			    for (int i = 0; i < rowCount; i++) {
-			      if(formatedKeyId.equals(keysTable.getValueAt(i, 2))) {
+			      if(formatedKeyId.equalsIgnoreCase(keysTable.getValueAt(i, 2).toString())) {
 			    	  shouldAddToTable = false;
 			    	  break;
 			      }

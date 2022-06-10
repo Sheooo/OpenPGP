@@ -69,8 +69,8 @@ class NewKeyPair {
 			
 			Object[] ret = new Object[] {(Object)publicKeyRingColletion,
 										 (Object)secretKeyRingCollection};
-			writeKeyRingsToFile("src/OnLoadFiles/secret/secretKeyRing.asc", 
-							   (Object)secretKeyRingCollection);
+			Util.writeKeyRingsToFile("src/OnLoadFiles/secret/secretKeyRing.asc", 
+							   		 (Object)secretKeyRingCollection);
 			
 			return ret;
 		} catch (NoSuchAlgorithmException | PGPException e) {
@@ -142,25 +142,6 @@ class NewKeyPair {
 		signatureSubpacketGenerator.setKeyFlags(false, KeyFlags.ENCRYPT_COMMS | KeyFlags.ENCRYPT_STORAGE);
 
 		return signatureSubpacketGenerator;
-	}
-	
-	@SuppressWarnings("unused")
-	private static void writeKeyRingsToFile(String filePath, 
-										 	Object keyRingCollection) {
-		try {
-			ArmoredOutputStream aos1 = new ArmoredOutputStream(new FileOutputStream(filePath));
-			if (keyRingCollection instanceof PGPPublicKeyRingCollection) {
-				PGPPublicKeyRingCollection publicKeyRingColletion = (PGPPublicKeyRingCollection) keyRingCollection;
-				publicKeyRingColletion.encode(aos1);
-		        aos1.close();
-			} else {
-				PGPSecretKeyRingCollection secretKeyRingColletion = (PGPSecretKeyRingCollection) keyRingCollection;
-				secretKeyRingColletion.encode(aos1);
-		        aos1.close();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 } 
 
