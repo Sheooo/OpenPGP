@@ -16,8 +16,13 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
@@ -25,8 +30,6 @@ import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
-
-
 
 public class MainFrame extends JFrame{
 	/**
@@ -59,7 +62,7 @@ public class MainFrame extends JFrame{
 		importSecretKeyRingsFromFile("src/OnLoadFiles/secret/secretKeyRing.asc");
 		setupKeysTable();
 		populateKeysTableIfNeeded();
-		
+	
 		frame.setVisible(true);
 	}
 
@@ -74,9 +77,9 @@ public class MainFrame extends JFrame{
 	private void setupMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu("File");
+        MainFrame mainFrame = this;
         
         JMenuItem generateNewKeyPair = new JMenuItem("Generate new key pair");
-        MainFrame mainFrame = this;
         generateNewKeyPair.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -88,13 +91,29 @@ public class MainFrame extends JFrame{
         importKeyRing.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ImportKeyFrame keyFrame = new ImportKeyFrame(mainFrame);
+				 new ImportKeyFrame(mainFrame);
 			}
 		});
         
+        JMenuItem exportKeyRing = new JMenuItem("Export key");
+        exportKeyRing.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int selectedRow = keysTable.getSelectedRow();
+				if(keysTable.getValueAt(selectedRow, 3).equals("Secret")) {
+					PGPSecretKeyRing secretKeyRing = findSecretKeyRing((String) keysTable.getValueAt(selectedRow, 2));
+					new ExportKeyFrame(secretKeyRing);
+				} else {
+					PGPPublicKeyRing publicKeyRing = findPublicKeyRing((String) keysTable.getValueAt(selectedRow, 2));
+					new ExportKeyFrame(publicKeyRing);
+				}
+								
+			}
+		});
         
         menu.add(generateNewKeyPair);
         menu.add(importKeyRing);
+        menu.add(exportKeyRing);
         menuBar.add(menu);
         frame.add(menuBar, BorderLayout.NORTH);
 	}
@@ -122,18 +141,38 @@ public class MainFrame extends JFrame{
 	}
 	
 	private void setupKeysTable() {
-		tableModel = new DefaultTableModel(columnNames,0);
+		tableModel = new DefaultTableModel(columnNames,0) {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+		    public boolean isCellEditable(int row, int column) {
+		        return false;
+		    }
+		};
 		
-		keysTable = new JTable(tableModel);
+		keysTable = new JTable(tableModel){
+			private static final long serialVersionUID = 1L;
+
+			public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
+			{
+				Component c = super.prepareRenderer(renderer, row, column);
+				if (isRowSelected(row))
+					c.setBackground(Color.RED);
+				return c;
+			}
+		};
 		keysTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
             public Component getTableCellRendererComponent(JTable table,
-                    Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+            		Object value, boolean isSelected, boolean hasFocus, int row, int col) {
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
-                String status = (String)table.getModel().getValueAt(row, 3);
-                if ("Secret".equals(status)) {
+               if(hasFocus) {
+            	   setBorder(null);
+               }
+                String keyType = (String)table.getModel().getValueAt(row, 3);
+                if ("Secret".equals(keyType)) {
                     setBackground(Color.BLACK);
                     setForeground(Color.WHITE);
                 } else {
@@ -143,7 +182,8 @@ public class MainFrame extends JFrame{
                 return this;
             }   
     	});
-			
+		keysTable.setRowSelectionAllowed(true);
+		keysTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         keysTable.setPreferredScrollableViewportSize(new Dimension(450,63));
         keysTable.setFillsViewportHeight(true);
 
@@ -179,7 +219,9 @@ public class MainFrame extends JFrame{
 	    		boolean shouldAddToTable = true;
 	    		keyID = Long.toHexString(secretKeyRing.getSecretKey().getKeyID()).toUpperCase();
 				StringBuilder stringBuilder = new StringBuilder(keyID);
-				stringBuilder.insert(4, " ").insert(9, " ").insert(14, " ");
+				stringBuilder.insert(4, " ")
+							 .insert(9, " ")
+							 .insert(14, " ");
 				String formatedKeyId = stringBuilder.toString();
 			    for (int i = 0; i < rowCount; i++) {
 			      
@@ -204,9 +246,9 @@ public class MainFrame extends JFrame{
 			    }
 	    	}
 		 }
-		 if(publicKeyRingCollection != null) {
-			
+		 if(publicKeyRingCollection != null) {	
 	    	String keyID;
+	    	
 	    	for(PGPPublicKeyRing publicKeyRing : publicKeyRingCollection) {
 	    		boolean shouldAddToTable = true;
 	    		
@@ -230,9 +272,34 @@ public class MainFrame extends JFrame{
 					String email = nameAndEmail[1].replace(">", "");
 					
 					tableModel.addRow(new Object[] {name, email, formatedKeyId, "Public"});
-					
 			    }
 	    	}
 		 }
+	 }
+	 
+	 private PGPPublicKeyRing findPublicKeyRing(String keyId) {
+		 for(PGPPublicKeyRing publicKeyRing : publicKeyRingCollection) {
+			String keyID = Long.toHexString(publicKeyRing.getPublicKey().getKeyID()).toUpperCase();
+			StringBuilder stringBuilder = new StringBuilder(keyID);
+			stringBuilder.insert(4, " ").insert(9, " ").insert(14, " ");
+			String formatedKeyId = stringBuilder.toString();
+			if(formatedKeyId.equals(keyId)){
+				return publicKeyRing;
+			}
+		 }
+		 return null;
+	 }
+	 
+	 private PGPSecretKeyRing findSecretKeyRing(String keyId) {
+		 for(PGPSecretKeyRing secretKeyRing : secretKeyRingCollection) {
+			String keyID = Long.toHexString(secretKeyRing.getSecretKey().getKeyID()).toUpperCase();
+			StringBuilder stringBuilder = new StringBuilder(keyID);
+			stringBuilder.insert(4, " ").insert(9, " ").insert(14, " ");
+			String formatedKeyId = stringBuilder.toString();
+			if(formatedKeyId.equals(keyId)){
+				return secretKeyRing;
+			}
+		 }
+		 return null;
 	 }
 }
